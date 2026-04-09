@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WORLD BATTLE</title>
+    <style>
+        :root { --teamA-color: #ff595e; --teamB-color: #1982c4; --accent-yellow: #ffca3a; --accent-blue: #3062ad; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: 'Arial Black', sans-serif; background: #222; user-select: none; }
+        
+        #top-header { position: fixed; top: 0; left: 0; width: 100%; height: 60px; background: #333; display: flex; align-items: center; justify-content: center; z-index: 50; border-bottom: 4px solid white; }
+        #top-header h1 { color: white; margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 1px; }
+
+        #game-wrapper { display: flex; height: 100vh; width: 100vw; padding-top: 60px; box-sizing: border-box; }
+
+        .player-side { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; padding: 10px; transition: background 0.3s; }
+        #teamA-side { background: linear-gradient(135deg, #8a2528, var(--teamA-color)); border-right: 2px solid white; }
+        #teamB-side { background: linear-gradient(225deg, #124e72, var(--teamB-color)); border-left: 2px solid white; }
+
+        .flash { background: white !important; }
+        .win-glow { background: var(--accent-yellow) !important; animation: pulse 0.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+        .score-box { background: #f0f0f0; color: #333; padding: 8px 20px; border-radius: 10px; font-size: 1.6rem; border: 4px solid #333; position: absolute; top: 15px; z-index: 10; box-shadow: 4px 4px 0px rgba(0,0,0,0.2); }
+        .q-count { position: absolute; top: 80px; color: white; font-size: 0.9rem; text-shadow: 2px 2px #000; letter-spacing: 1px; }
+
+        .pic-frame { background: white; width: 280px; height: 210px; border-radius: 15px; border: 8px solid var(--accent-yellow); box-shadow: 0 8px 0 rgba(0,0,0,0.3); margin-bottom: 25px; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; }
+        .pic-frame img { width: 100%; height: 100%; object-fit: cover; }
+
+        .btn-stack { width: 90%; display: flex; flex-direction: column; gap: 15px; }
+        .choice-btn { width: 100%; padding: 22px 5px; font-size: 1.6rem; font-weight: bold; border-radius: 10px; border: 4px solid #333; background: white; color: #333; box-shadow: 0 8px 0 #666; cursor: pointer; text-transform: uppercase; }
+        .choice-btn:active { transform: translateY(6px); box-shadow: 0 2px 0 #333; background: #e0e0e0; }
+
+        #banner { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 40px 60px; font-size: 3.5rem; border: 12px solid var(--accent-blue); border-radius: 10px; z-index: 100; display: block; box-shadow: 0 0 0 1000px rgba(0,0,0,0.8); font-weight: bold; text-align: center; line-height: 1.2; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div id="top-header"><h1 id="task-text">World Quiz</h1></div>
+    <div id="banner">READY?<br><small style="font-size:1.2rem; color:#666;">TAP TO START</small></div>
+
+    <div id="game-wrapper">
+        <div id="teamA-side" class="player-side">
+            <div class="score-box">TEAM A: <span id="s1">0</span></div>
+            <div id="c1" class="q-count">ROUND 1/14</div>
+            <div class="pic-frame" id="box1"></div>
+            <div class="btn-stack">
+                <button class="choice-btn" id="p1-b0" onclick="tap(1,0)"></button>
+                <button class="choice-btn" id="p1-b1" onclick="tap(1,1)"></button>
+            </div>
+        </div>
+        <div id="teamB-side" class="player-side">
+            <div class="score-box">TEAM B: <span id="s2">0</span></div>
+            <div id="c2" class="q-count">ROUND 1/14</div>
+            <div class="pic-frame" id="box2"></div>
+            <div class="btn-stack">
+                <button class="choice-btn" id="p2-b0" onclick="tap(2,0)"></button>
+                <button class="choice-btn" id="p2-b1" onclick="tap(2,1)"></button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const data = [
+        { country: "USA", food: "Hamburger", foodImg: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500", flagImg: "https://flagcdn.com/w640/us.png" },
+        { country: "INDIA", food: "Curry", foodImg: "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=500", flagImg: "https://flagcdn.com/w640/in.png" },
+        // Fixed Taiwan Links
+        { country: "TAIWAN", food: "Beef Noodles", foodImg: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Niu_rou_mian_2013.JPG/640px-Niu_rou_mian_2013.JPG", flagImg: "https://flagcdn.com/w640/tw.png" },
+        { country: "JAPAN", food: "Sushi", foodImg: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=500", flagImg: "https://flagcdn.com/w640/jp.png" },
+        { country: "ITALY", food: "Pizza", foodImg: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500", flagImg: "https://flagcdn.com/w640/it.png" },
+        { country: "MEXICO", food: "Tacos", foodImg: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=500", flagImg: "https://flagcdn.com/w640/mx.png" },
+        { country: "FRANCE", food: "Croissant", foodImg: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=500", flagImg: "https://flagcdn.com/w640/fr.png" }
+    ];
+
+    let rounds = [];
+    data.forEach(d => rounds.push({ ...d, type: 'flag' }));
+    data.forEach(d => rounds.push({ ...d, type: 'food' }));
+
+    // Fully shuffle everything together
+    rounds = rounds.sort(() => Math.random() - 0.5);
+
+    let aScore = 0, bScore = 0, qIndex = 0, canTap = false, choices = [];
+    const audio = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSound(notes, type, volume, speed = 0.1) {
+        const now = audio.currentTime;
+        notes.forEach((f, i) => {
+            const o = audio.createOscillator(); const g = audio.createGain();
+            o.type = type; o.frequency.value = f;
+            g.gain.setValueAtTime(volume, now + (i * speed));
+            g.gain.exponentialRampToValueAtTime(0.0001, now + (i * speed) + 0.4);
+            o.connect(g); g.connect(audio.destination);
+            o.start(now + (i * speed)); o.stop(now + (i * speed) + 0.5);
+        });
+    }
+
+    document.getElementById('banner').onclick = function() {
+        if(qIndex === 0 && !canTap) {
+            let count = 10;
+            const b = document.getElementById('banner');
+            const timer = setInterval(() => {
+                if(count > 0) { b.innerHTML = `READY?<br>${count}`; playSound([440], 'sine', 0.05); count--; }
+                else { clearInterval(timer); showBanner("GO!", 800, load); }
+            }, 1000);
+        }
+    };
+
+    function showBanner(t, d, cb) {
+        const b = document.getElementById('banner'); b.innerHTML = t; b.style.display = 'block';
+        setTimeout(() => { b.style.display = 'none'; if(cb) cb(); }, d);
+    }
+
+    function load() {
+        if (qIndex >= rounds.length) { endGame(); return; }
+        const q = rounds[qIndex];
+        document.getElementById('task-text').innerText = q.type === 'flag' ? "Identify the Flag!" : `Where is ${q.food} from?`;
+        
+        let wrong = data.filter(d => d.country !== q.country)[Math.floor(Math.random() * 6)].country;
+        choices = [q.country, wrong].sort(() => Math.random() - 0.5);
+        
+        const imgUrl = q.type === 'flag' ? q.flagImg : q.foodImg;
+        // The alt text and styling here ensure something shows even if internet blips
+        const imgTag = `<img src="${imgUrl}" alt="${q.country} ${q.food}">`;
+        
+        document.getElementById('box1').innerHTML = document.getElementById('box2').innerHTML = imgTag;
+        document.getElementById('c1').innerText = document.getElementById('c2').innerText = `ROUND ${qIndex + 1}/14`;
+        
+        for(let i=0; i<2; i++) {
+            document.getElementById(`p1-b${i}`).innerText = document.getElementById(`p2-b${i}`).innerText = choices[i];
+        }
+        canTap = true;
+    }
+
+    function tap(team, i) {
+        if(!canTap) return;
+        if(choices[i] === rounds[qIndex].country) {
+            canTap = false; playSound([880, 1046], 'sine', 0.1, 0.05);
+            const side = team === 1 ? 'teamA-side' : 'teamB-side';
+            document.getElementById(side).classList.add('flash');
+            setTimeout(() => document.getElementById(side).classList.remove('flash'), 100);
+            if(team === 1) { aScore++; document.getElementById('s1').innerText = aScore; } 
+            else { bScore++; document.getElementById('s2').innerText = bScore; }
+            qIndex++; showBanner("NEXT", 600, load);
+        } else { playSound([110], 'sawtooth', 0.1); }
+    }
+
+    function endGame() {
+        let winId = aScore > bScore ? 'teamA-side' : (bScore > aScore ? 'teamB-side' : null);
+        let winTxt = aScore > bScore ? "WINNER: TEAM A" : (bScore > aScore ? "WINNER: TEAM B" : "DRAW!");
+        
+        if(winId) document.getElementById(winId).classList.add('win-glow');
+        
+        const b = document.getElementById('banner');
+        b.innerHTML = `<span style="color:var(--teamA-color)">${winTxt}</span>`;
+        b.style.display = 'block';
+        playSound([523.25, 523.25, 523.25, 523.25, 659.25, 783.99, 1046.50], 'square', 0.1, 0.15);
+    }
+</script>
+</body>
+</html>
