@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPELLING BEE</title>
+
+    <style>
+        :root {
+            --main: rgba(255, 255, 255, 0.94); 
+            --yellow: #f1c40f;
+            --blue: #3498db;
+            --dark: #2c3e50;
+            --overlay: rgba(0, 0, 0, 0.85);
+            --green: #2ecc71;
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            overflow: hidden;
+            font-family: 'Arial Rounded MT Bold', sans-serif;
+        }
+
+        .bg-fixed {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: url('https://raw.githubusercontent.com/marionbunyi/html-games/main/food%201%20new%20pic.png') no-repeat center center;
+            background-size: cover;
+            z-index: -1;
+        }
+
+        #flash-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--green); opacity: 0; z-index: 3000;
+            pointer-events: none; transition: opacity 0.1s;
+        }
+
+        #start-screen, #end-screen, #countdown-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--overlay); z-index: 2000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; color: white;
+            text-align: center;
+        }
+
+        .btn {
+            padding: 20px 60px; font-size: 2.2rem; border-radius: 60px;
+            border: none; background: var(--yellow); cursor: pointer;
+            box-shadow: 0 10px 0 #d4ac0d; font-weight: bold; color: #333;
+        }
+
+        .game-area {
+            width: 90%; max-width: 1000px; height: 85vh;
+            background: var(--main); border-radius: 40px;
+            margin: 5vh auto; position: relative;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            border: 10px solid var(--dark);
+            display: flex; flex-direction: column;
+        }
+
+        .clue-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; position: relative; }
+        
+        .clue-img { 
+            width: 420px; height: 280px; 
+            border-radius: 25px; 
+            border: 8px solid white; 
+            object-fit: cover; 
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2); 
+        }
+
+        .flash-text {
+            position: absolute;
+            font-size: 7rem;
+            color: white;
+            font-weight: bold;
+            text-shadow: 4px 4px 10px rgba(0,0,0,0.5);
+            display: none;
+            z-index: 3001;
+            pointer-events: none;
+        }
+
+        .round-banner { 
+            background: var(--dark); color: var(--yellow); 
+            padding: 15px 40px; border-radius: 0 0 20px 20px;
+            font-size: 1.8rem; font-weight: bold; align-self: center;
+        }
+
+        .word-display { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin: 20px; min-height: 80px; }
+        .char { font-size: 5rem; font-weight: bold; color: #222; }
+        .vowel-slot { color: var(--blue); border-bottom: 10px solid var(--dark); min-width: 70px; text-align: center; }
+
+        .keyboard, .choice-area { height: 25%; display: flex; justify-content: center; flex-wrap: wrap; gap: 15px; padding: 0 20px 30px 20px; align-items: center; }
+        .key, .choice-btn { 
+            background: var(--dark); color: white; border-radius: 20px;
+            width: 120px; height: 90px; display: flex; align-items: center;
+            justify-content: center; font-size: 3rem; cursor: pointer;
+            box-shadow: 0 8px 0 #151e27; font-weight: bold;
+        }
+
+        .choice-btn { width: 280px; font-size: 1.8rem; background: var(--blue); box-shadow: 0 8px 0 #2980b9; }
+
+        .timer-tag { position: absolute; top: 20px; right: 30px; background: #e74c3c; color: white; padding: 10px 25px; border-radius: 30px; font-weight: bold; font-size: 1.5rem; }
+    </style>
+</head>
+<body>
+
+<div class="bg-fixed"></div>
+<div id="flash-overlay"></div>
+
+<div id="start-screen">
+    <h1 style="font-size: 6rem; color: var(--yellow);">SPELLING BEE</h1>
+    <p style="font-size: 2rem; margin-bottom: 3rem;">🚩 Flags | 🍔 Foods | 🥤 Drinks Quiz</p>
+    <button class="btn" onclick="startCountdown()">START GAME</button>
+</div>
+
+<div id="countdown-screen" style="display:none;"><div id="count-num" style="font-size: 15rem;">5</div></div>
+
+<div id="end-screen" style="display:none;">
+    <h1 style="font-size: 5rem;">MISSION COMPLETE 🏆</h1>
+    <h2 id="final-time" style="font-size: 2.5rem; color: var(--yellow);"></h2>
+    <button class="btn" onclick="location.reload()">PLAY AGAIN</button>
+</div>
+
+<div class="game-area">
+    <div class="round-banner" id="round-label">ROUND 1: SPELL THE COUNTRY</div>
+    <div class="timer-tag">⏱ <span id="timer">0</span>s</div>
+    
+    <div class="clue-area">
+        <div id="flash" class="flash-text">CORRECT!</div>
+        <div id="clue-container"></div>
+        <div class="word-display" id="word-box"></div>
+    </div>
+
+    <div class="keyboard" id="keyboard-vowels"></div>
+    <div class="choice-area" id="choice-round" style="display:none;"></div>
+</div>
+
+<script>
+const GH = "https://raw.githubusercontent.com/marionbunyi/html-games/main/";
+
+const gameData = [
+    { country: "TAIWAN", food: "BEEF NOODLES", drink: "BUBBLE TEA", flag: "https://flagcdn.com/w640/tw.png", foodImg: GH+"beef%20noodles.jpg", drinkImg: GH+"bubble%20tea.jpg" },
+    { country: "USA", food: "HAMBURGER", drink: null, flag: "https://flagcdn.com/w640/us.png", foodImg: GH+"hamburger.jpg", drinkImg: null },
+    { country: "ITALY", food: "PIZZA", drink: "GRANITA", flag: "https://flagcdn.com/w640/it.png", foodImg: GH+"pizza.jpg", drinkImg: GH+"granita.jpg" },
+    { country: "INDIA", food: "CURRY", drink: "LASSI", flag: "https://flagcdn.com/w640/in.png", foodImg: GH+"curry.jpg", drinkImg: GH+"lassi.jpg" },
+    { country: "MEXICO", food: "TACOS", drink: "HORCHATA", flag: "https://flagcdn.com/w640/mx.png", foodImg: GH+"taco.jpg", drinkImg: GH+"horchata.jpg" },
+    { country: "JAPAN", food: "SUSHI", drink: "MATCHA", flag: "https://flagcdn.com/w640/jp.png", foodImg: GH+"sushi.jpg", drinkImg: GH+"matcha.jpg" },
+    { country: "FRANCE", food: "CROISSANT", drink: null, flag: "https://flagcdn.com/w640/fr.png", foodImg: GH+"croissant.jpg", drinkImg: null }
+];
+
+const drinkRoundItems = gameData.filter(d => d.drink !== null);
+const round3Options = drinkRoundItems.map(d => d.country);
+const allDrinkNames = drinkRoundItems.map(d => d.drink);
+
+const vowels = ['A','E','I','O','U'];
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let currentRound = 1, index = 0, guesses = [], seconds = 0, timerActive = false;
+
+function playSound(freq, type, dur) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + dur);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + dur);
+}
+
+function playBGM() {
+    let beat = 0;
+    setInterval(() => {
+        if (!timerActive) return;
+        const melody = [261, 329, 392, 523, 440, 349];
+        playSound(melody[beat % 6], 'triangle', 0.25);
+        beat++;
+    }, 500);
+}
+
+function flashSuccess(callback) {
+    const fText = document.getElementById('flash');
+    const fOverlay = document.getElementById('flash-overlay');
+    fText.style.display = 'block';
+    fOverlay.style.opacity = '0.9';
+    playSound(1000, 'sine', 0.4);
+    setTimeout(() => { 
+        fOverlay.style.opacity = '0';
+        fText.style.display = 'none'; 
+        callback(); 
+    }, 700);
+}
+
+function startCountdown(){
+    document.getElementById('start-screen').style.display='none';
+    document.getElementById('countdown-screen').style.display='flex';
+    let t=5;
+    const timer=setInterval(()=>{
+        t--; document.getElementById('count-num').textContent=t;
+        if(t<=0){
+            clearInterval(timer);
+            document.getElementById('countdown-screen').style.display='none';
+            timerActive = true;
+            playBGM();
+            setInterval(() => { if(timerActive) { seconds++; document.getElementById('timer').textContent = seconds; } }, 1000);
+            initUI();
+        }
+    },1000);
+}
+
+function initUI(){
+    const kb = document.getElementById('keyboard-vowels');
+    vowels.forEach(v => {
+        const d = document.createElement('div');
+        d.className = 'key'; d.textContent = v;
+        d.onclick = () => handleSpelling(v);
+        kb.appendChild(d);
+    });
+    loadLevel();
+}
+
+function handleSpelling(v) {
+    let target = (currentRound === 1) ? gameData[index].country : gameData[index].food;
+    const targetVowels = target.split('').filter(c => vowels.includes(c));
+    if (v === targetVowels[guesses.length]) {
+        guesses.push(v);
+        playSound(880, 'sine', 0.05);
+        renderSpelling();
+        if(guesses.length === targetVowels.length) {
+            flashSuccess(() => { index++; loadLevel(); });
+        }
+    } else { playSound(150, 'sawtooth', 0.4); }
+}
+
+function handleChoice(choice) {
+    let correct;
+    if(currentRound === 3) correct = drinkRoundItems[index].country;
+    if(currentRound === 4) correct = drinkRoundItems[index].drink;
+
+    if(choice === correct) {
+        flashSuccess(() => { index++; loadLevel(); });
+    } else { playSound(150, 'sawtooth', 0.4); }
+}
+
+function loadLevel(){
+    let max = (currentRound <= 2) ? gameData.length : drinkRoundItems.length;
+    
+    if(index >= max){
+        if(currentRound < 4){ currentRound++; index = 0; loadLevel(); }
+        else { endGame(); return; }
+    }
+    
+    guesses = [];
+    const banner = document.getElementById('round-label');
+    const container = document.getElementById('clue-container');
+    const kb = document.getElementById('keyboard-vowels');
+    const cb = document.getElementById('choice-round');
+    const wordBox = document.getElementById('word-box');
+
+    if (currentRound === 1) {
+        banner.textContent = "ROUND 1: SPELL THE COUNTRY";
+        container.innerHTML = `<img src="${gameData[index].flag}" class="clue-img">`;
+        kb.style.display = 'flex'; cb.style.display = 'none'; wordBox.style.display = 'flex';
+        renderSpelling();
+    } else if (currentRound === 2) {
+        banner.textContent = "ROUND 2: SPELL THE FOOD";
+        container.innerHTML = `<img src="${gameData[index].foodImg}" class="clue-img">`;
+        kb.style.display = 'flex'; cb.style.display = 'none'; wordBox.style.display = 'flex';
+        renderSpelling();
+    } else if (currentRound === 3) {
+        banner.textContent = "ROUND 3: WHERE IS THIS DRINK FROM?";
+        container.innerHTML = `<img src="${drinkRoundItems[index].drinkImg}" class="clue-img">`;
+        kb.style.display = 'none'; cb.style.display = 'flex'; wordBox.style.display = 'none';
+        cb.innerHTML = '';
+        round3Options.forEach(opt => createBtn(opt, cb));
+    } else if (currentRound === 4) {
+        banner.textContent = "ROUND 4: NAME THE DRINK";
+        container.innerHTML = `<img src="${drinkRoundItems[index].drinkImg}" class="clue-img">`;
+        kb.style.display = 'none'; cb.style.display = 'flex'; wordBox.style.display = 'none';
+        cb.innerHTML = '';
+        
+        const correct = drinkRoundItems[index].drink;
+        const others = allDrinkNames.filter(d => d !== correct);
+        const wrong = others[Math.floor(Math.random() * others.length)];
+        const choices = [correct, wrong].sort(() => Math.random() - 0.5);
+        
+        choices.forEach(opt => createBtn(opt, cb));
+    }
+}
+
+function createBtn(text, parent) {
+    const b = document.createElement('div');
+    b.className = 'choice-btn'; b.textContent = text;
+    b.onclick = () => handleChoice(text);
+    parent.appendChild(b);
+}
+
+function renderSpelling(){
+    const box = document.getElementById('word-box');
+    box.innerHTML = '';
+    let word = (currentRound === 1) ? gameData[index].country : gameData[index].food;
+    let vIdx = 0;
+    word.split('').forEach(char => {
+        const d = document.createElement('div');
+        d.className = 'char';
+        if(vowels.includes(char)){
+            d.classList.add('vowel-slot');
+            d.textContent = guesses[vIdx] || "_";
+            vIdx++;
+        } else { d.textContent = char === " " ? "\u00A0" : char; }
+        box.appendChild(d);
+    });
+}
+
+function endGame(){
+    timerActive = false;
+    document.getElementById('end-screen').style.display='flex';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    document.getElementById('final-time').textContent = `Time: ${mins} minute${mins!=1?'s':''} and ${secs} second${secs!=1?'s':''}`;
+}
+</script>
+</body>
+</html>
